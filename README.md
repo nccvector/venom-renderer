@@ -11,12 +11,11 @@
 
 - [x] Multi-threading
 - [x] Bucket Rendering
+- [x] wavefront object(.obj) import
+- [x] Spatial Subdivision (Octree)
 - [x] Custom BRDF
 - [ ] Cooke Torrance BRDF
 - [ ] Disney BRDF
-- [x] Spatial Subdivision (Octree)
-- [ ] Triangles
-- [x] Spheres
-- [x] Planes
+- [x] Triangles
 - [x] Voxels
 - [ ] Importance Sampling

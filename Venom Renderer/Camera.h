@@ -16,14 +16,14 @@ class Camera
 	int IMAGE_HEIGHT;
 
 public:
-	Camera(int IMAGE_WIDTH, int IMAGE_HEIGHT)
+	Camera(int IMAGE_WIDTH, int IMAGE_HEIGHT, float aspectRatio, float fov)
 	{
 		this->position = glm::vec4(0.f, 0.f, 0.f, 1.f);
 		this->forward = glm::vec4(0.f, 0.f, -1.f, 1.f);
 		this->right = glm::vec4(1.f, 0.f, 0.f, 1.f);
 		this->up = glm::vec4(0.f, 1.f, 0.f, 1.f);
-		this->fov = glm::radians(90.f);
-		this->aspectRatio = 16.f / 9.f;		// 16:9
+		this->fov = fov;
+		this->aspectRatio = aspectRatio;		// 16:9
 		this->nearPlaneDistance = 0.01f;
 		this->farPlaneDistance = 1000.f;
 		this->transform = glm::mat4(1.f);
@@ -88,8 +88,8 @@ public:
 			for (int x = 0; x < this->IMAGE_WIDTH; x++)
 			{
 				Ray transformedRay;
-				transformedRay.origin = this->transform * this->rays[y][x].origin;
-				transformedRay.direction = this->transform * this->rays[y][x].direction;
+				transformedRay.origin = glm::vec3(this->transform * glm::vec4(this->rays[y][x].origin, 1.f));
+				transformedRay.direction = glm::vec3(this->transform * glm::vec4(this->rays[y][x].direction, 0.f));
 
 				transformedRays[y][x] = transformedRay;
 			}
