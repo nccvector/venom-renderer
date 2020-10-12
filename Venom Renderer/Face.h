@@ -2,18 +2,14 @@
 
 #include <glm.hpp>
 
-#include "Voxel.h"
+#include "Material.h"
 
-class Face
+struct Face
 {
-public:
 	int index;
 	glm::vec3 vertices[3];
 	glm::vec2 uvs[3];
 	glm::vec3 normals[3];
 
-	Face()
-	{
-
-	}
+	Material* mat;
 };

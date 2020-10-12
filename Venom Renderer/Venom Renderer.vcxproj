@@ -162,12 +162,12 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Face.h" />
+    <ClInclude Include="HitInfo.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="OBJLoader.h" />
     <ClInclude Include="Octree.h" />
     <ClInclude Include="Ray.h" />
-    <ClInclude Include="SurfaceProperties.h" />
     <ClInclude Include="Tracer.h" />
     <ClInclude Include="TriangleBoxIntersection.h" />
     <ClInclude Include="Vertex.h" />

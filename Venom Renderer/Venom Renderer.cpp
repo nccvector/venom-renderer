@@ -34,18 +34,23 @@ int main()
     clock_t tStart = clock();
 
     // Creating image canvas
-    float ANTI_ALIASING = 0.5f; // 2X
+    float ANTI_ALIASING = 1.f; // 2X
     int IMAGE_WIDTH = 640 * ANTI_ALIASING;
     int IMAGE_HEIGHT = 480 * ANTI_ALIASING;    // 16:9
     cv::Mat image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::Mat outImg;
 
     // Creating and preparing camera object
-    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, 4.f/3.f, glm::radians(90.f));
+    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, 4.f/3.f, glm::radians(45.f));
     cam.rotate(0.f, 0.f, 0.f);
-    cam.translate(glm::vec3(-0.01f, 0.1f, 0.15f));
 
-    Mesh mesh("./Assets/stanford_bunny.obj");
+    //cam.translate(glm::vec3(0.f, 2.5f, 3.5f)); // for cornell box
+    //cam.translate(glm::vec3(-0.02f, 0.09f, 0.135f)); // for stanford bunny
+    //cam.translate(glm::vec3(0.f, 0.5f, 5.f)); // for mit sphere
+    //cam.translate(glm::vec3(0.f, 1.f, 4.5f)); // for teapot
+    cam.translate(glm::vec3(-0.6f, 0.9f, 7.5f)); // for venom sample scene
+
+    Mesh mesh("./Assets/venom_sample_scene.obj");
 
     std::vector<Mesh> meshes;
     meshes.push_back(mesh);
@@ -101,8 +106,11 @@ int main()
     // Parallel Rendering and updating image
     #pragma omp parallel for num_threads(8)
     for (int i = 0; i < divisions * divisions; i++) {
-        // Getting color list from the region
-        glm::vec3* colors = tracer.colorFromRegion(bucketList[i]);
+        // Creating a color array of bucket size in advance (Thanks to Imre Palik for finding a memory leak)
+        glm::vec3* colors = new glm::vec3[int(bucketSize.x) * int(bucketSize.y)]; // "new" keyword now gets deleted at the end
+
+        // Filling colors array
+        tracer.colorFromRegion(bucketList[i], colors);
 
         // Coloring image using the colors obtained from the rendered region
         for (int y = 0; y < bucketSize.y; y++)
@@ -120,6 +128,9 @@ int main()
                 image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
             }
         }
+
+        // Clearing the memory
+        delete[] colors;
     }
 
     std::cout << "\nTime taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC;
@@ -128,6 +139,7 @@ int main()
     replace(endTime.begin(), endTime.end(), ':', '_');
     replace(endTime.begin(), endTime.end(), '\n', '_');
 
+    cv::waitKey(10); // Time delay before saving to let the image complete
     cv::imwrite("./Renders/" + startTime + "_to_" + endTime + ".jpg", outImg);
     cv::waitKey();
 }

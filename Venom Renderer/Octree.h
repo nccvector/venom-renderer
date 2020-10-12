@@ -33,7 +33,7 @@ public:
 	}
 
 	// Constructor
-	Octree(Voxel boundary, int voxel_capacity = 2, int depth = 0)
+	Octree(Voxel boundary, int voxel_capacity = 8, int depth = 0)
 	{
 		this->boundary = boundary;
 		this->voxel_capacity = voxel_capacity;

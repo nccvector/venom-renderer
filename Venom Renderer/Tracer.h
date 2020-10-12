@@ -8,9 +8,9 @@
 
 #include "Ray.h"
 #include "Mesh.h"
-#include "SurfaceProperties.h"
+#include "HitInfo.h"
 
-# define M_PI           3.14159265358979323846
+# define M_PI           3.1415926535f
 
 class Tracer
 {
@@ -59,83 +59,73 @@ public:
         return glm::vec3(x, r1, z);
     }
 
-    glm::vec3 trace(Ray ray, int bounces=2, int samples=1)
+    glm::vec3 trace(Ray ray, int bounces=3, int samples=64)
     {
-        SurfaceProperties sp;
-        sp.hit = false;
+        HitInfo hitInfo;
+        hitInfo.hit = false;
 
         // closest hit distance and id of closest object
         float closest_distance = 10000.f;
 
         for (int i=0; i<this->meshes.size(); i++)
         {
-            SurfaceProperties tempSp = this->meshes[i].closestIntersection(ray);
+            HitInfo tempHitInfo = this->meshes[i].closestIntersection(ray);
 
-            if (tempSp.hit)
+            if (tempHitInfo.hit)
             {
-                if (tempSp.hitDistance > 0.f && tempSp.hitDistance < closest_distance)
+                if (tempHitInfo.hitDistance > 0.f && tempHitInfo.hitDistance < closest_distance)
                 {
-                    sp = tempSp;
+                    hitInfo = tempHitInfo;
                 }
             }
         }
 
-        if (!sp.hit || bounces <= 0)
+        // Return sky color if hit nothing
+        if (!hitInfo.hit)
+        {
             return glm::vec3(1.f, 1.f, 1.f);
+        }
+        
+        // return color*ambienLight if bounces are over
+        if(bounces <= 0)
+        {
+            return glm::vec3(0.1f, 0.1f, 0.1f) * hitInfo.face->mat->baseColor;
+        }
 
         // Find the reflected ray
-        glm::vec3 hitPoint = sp.hitPoint;
-        glm::vec3 normal = sp.normal;
-
-        float c1 = -glm::dot(normal, ray.direction);
-        glm::vec3 Rl(ray.direction + (2.f * normal * c1));
-
-        glm::vec3 indirectLigthing(0.f, 0.f, 0.f);
-        glm::vec3 indirectSpecular(0.f,0.f,0.f);
+        //float c1 = -glm::dot(hitInfo.normal, ray.direction);
+        //glm::vec3 Rl(ray.direction + (2.f * hitInfo.normal * c1));
 
         glm::vec3 Nt, Nb;
-        createCoordinateSystem(normal, Nt, Nb);
-        float pdf = 1 / (2 * M_PI);
+        createCoordinateSystem(hitInfo.normal, Nt, Nb);
 
+        glm::vec3 indirectLight(0.f, 0.f, 0.f); // Starting from darkness
         for (int i=0; i<samples; i++)
         {
+            Ray diffuse_ray;
+            diffuse_ray.origin = hitInfo.hitPoint + hitInfo.normal * 0.0000001f;
+
             float r1 = distribution(generator);
             float r2 = distribution(generator);
             glm::vec3 sample = uniformSampleHemisphere(r1, r2);
             // Transforming sample to world (from a scratch a pixel)
-            glm::vec3 sampleWorld(
-                sample.x * Nb.x + sample.y * normal.x + sample.z * Nt.x,
-                sample.x * Nb.y + sample.y * normal.y + sample.z * Nt.y,
-                sample.x * Nb.z + sample.y * normal.z + sample.z * Nt.z);
+            diffuse_ray.direction = glm::vec3(
+                sample.x * Nb.x + sample.y * hitInfo.normal.x + sample.z * Nt.x,
+                sample.x * Nb.y + sample.y * hitInfo.normal.y + sample.z * Nt.y,
+                sample.x * Nb.z + sample.y * hitInfo.normal.z + sample.z * Nt.z);
 
-            // Specular sample biasing
-            glm::vec3 sampleSpecular = sp.roughness * sampleWorld + (1- sp.roughness) * glm::vec3(Rl);
+            float pdf = 1/(2*M_PI);
 
-            Ray diffuse_ray;
-            diffuse_ray.origin = hitPoint + normal * 0.000001f;
-            diffuse_ray.direction = glm::vec4(sampleWorld, 0.f);
-
-            Ray specular_ray;
-            specular_ray.origin = hitPoint + normal * 0.000001f;
-            specular_ray.direction = sampleSpecular;
-
-            float diffusion_dot = glm::dot(diffuse_ray.direction, normal);
-            float specular_dot = glm::dot(specular_ray.direction, Rl);
-            float fresnel_dot = std::min((1.f - glm::dot(normal, -ray.direction)) + sp.baseSpecular, 1.f);
-
-            indirectLigthing += (1- sp.specularWeight * fresnel_dot) * r1 * trace(diffuse_ray, bounces - 1, 1) * diffusion_dot / pdf;
-            indirectSpecular += sp.specularWeight * r1 * trace(specular_ray, bounces - 1, 1) * specular_dot * fresnel_dot / pdf;
+            indirectLight += hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, Nt, Nb) *
+                trace(diffuse_ray, bounces - 1, 1) * glm::dot(hitInfo.normal, diffuse_ray.direction) / pdf;
         }
 
-        return (indirectLigthing/float(samples)) * sp.color/float(2.f * M_PI) +
-            (indirectSpecular / float(samples)) / float(2.f * M_PI);
+        return indirectLight/float(samples);
     }
 
     // Get color list from region
-    glm::vec3* colorFromRegion(glm::vec4 region)
+    void colorFromRegion(glm::vec4 region, glm::vec3* colors)
     {
-        glm::vec3* colors = new glm::vec3[int(region.y-region.x) * int(region.w-region.z)];
-
         // Looping over the canvas pixels to fill the color information
         for (int y = 0; y < (region.w-region.z); y++)
         {
@@ -145,7 +135,5 @@ public:
                 colors[x + y * (int)(region.y - region.x)] = this->trace(this->transRays[int(y+region.z)][int(x+region.x)]);
             }
         }
-
-        return colors;
     }
 };

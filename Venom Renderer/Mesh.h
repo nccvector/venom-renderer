@@ -8,7 +8,7 @@
 #include "Voxel.h"
 #include "Octree.h"
 #include "Ray.h"
-#include "SurfaceProperties.h"
+#include "HitInfo.h"
 #include "Material.h"
 #include "Face.h"
 #include "OBJLoader.h"
@@ -16,15 +16,18 @@
 class Mesh
 {
 public:
+    // List of vertices, uvs and normals in the scene
 	std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> normals;
 
-    std::vector<Face> faces;
+    // List of faces in this scene
+    std::vector<Face> faces; // Required for octree building and intersection queries
 
-    bool recalculated_normals = false;
+    bool recalculated_normals = false; // Required for shading purposes
 
-    Material mat;
+    // List of materials required by this scene
+    std::vector<Material> materials;
 
 	Octree* octree;
 
@@ -41,6 +44,11 @@ public:
             std::cout << "NORMALS ARE MISSING...RECALCULATING...\n";
             this->recalculateNormals();
         }
+
+        // Creating material list
+        Material mat;
+        materials.push_back(mat);
+
         
         // Computing faces
         // adding faces to octree
@@ -53,6 +61,9 @@ public:
             temp_face.vertices[0] = vertices[3 * i];
             temp_face.vertices[1] = vertices[3 * i + 1];
             temp_face.vertices[2] = vertices[3 * i + 2];
+
+            // Pointer to the face material
+            temp_face.mat = &this->materials[0]; // Pushing only the first material from list
 
             faces.push_back(temp_face);
         }
@@ -131,11 +142,11 @@ public:
         }
 	}
 
-    SurfaceProperties closestIntersection(Ray ray)
+    HitInfo closestIntersection(Ray ray)
     {
-        SurfaceProperties sp;
-        sp.hit = false;
-        sp.hitDistance = 1000000.f;
+        HitInfo hitInfo;
+        hitInfo.hit = false;
+        hitInfo.hitDistance = 1000000.f;
 
         // Getting the closest faces list
         std::vector<Face*> closest_faces;
@@ -146,27 +157,24 @@ public:
         {
             float t = rayFaceIntersect(ray, closest_faces[i]->index);
 
-            if (t > 0.f && t < sp.hitDistance)
+            if (t > 0.f && t < hitInfo.hitDistance)
             {
-                sp.hit = true;
-                sp.hitDistance = t;
-                sp.hitPoint = ray.origin + ray.direction * t;
+                hitInfo.hit = true;
+                hitInfo.hitDistance = t;
+                hitInfo.hitPoint = ray.origin + ray.direction * t;
 
                 if (!recalculated_normals)
-                    sp.normal = (normals[3 * closest_faces[i]->index] + 
+                    hitInfo.normal = glm::normalize(normals[3 * closest_faces[i]->index] + 
                         normals[3 * closest_faces[i]->index + 1] + 
-                        normals[3 * closest_faces[i]->index + 2]) / 3.f;
+                        normals[3 * closest_faces[i]->index + 2]);
                 else
-                    sp.normal = normals[closest_faces[i]->index];
+                    hitInfo.normal = normals[closest_faces[i]->index];
                 
-                sp.color = mat.color;
-                sp.roughness = mat.roughness;
-                sp.baseSpecular = mat.base_specular;
-                sp.specularWeight = mat.specular_weight;
+                hitInfo.face = closest_faces[i];
             }
         }
 
-        return sp;
+        return hitInfo;
     }
 
     float rayFaceIntersect(Ray ray, uint32_t face)
