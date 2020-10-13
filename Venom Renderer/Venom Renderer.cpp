@@ -34,10 +34,10 @@ int main()
     clock_t tStart = clock();
 
     // Creating image canvas
-    float ANTI_ALIASING = 1.f; // 2X
+    float ANTI_ALIASING = 0.25f; // 2X
     int IMAGE_WIDTH = 640 * ANTI_ALIASING;
     int IMAGE_HEIGHT = 480 * ANTI_ALIASING;    // 16:9
-    cv::Mat image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_32FC3, cv::Scalar(45, 40, 90));
     cv::Mat outImg;
 
     // Creating and preparing camera object
@@ -50,12 +50,9 @@ int main()
     //cam.translate(glm::vec3(0.f, 1.f, 4.5f)); // for teapot
     cam.translate(glm::vec3(-0.6f, 0.9f, 7.5f)); // for venom sample scene
 
-    Mesh mesh("./Assets/venom_sample_scene.obj");
-
-    std::vector<Mesh> meshes;
-    meshes.push_back(mesh);
-
-    std::cout << "\nSuccessfully Loaded Meshes: " << meshes.size() << "\n";
+    // Whole scene is a single mesh with many mant faces
+    Mesh scene("./Assets/venom_sample_scene.obj");
+    std::cout << "\nSuccessfully Loaded Scene " << "\n";
 
     // Creating a ray pointer to iterate over the array of rays
     Ray** transRays;
@@ -64,7 +61,7 @@ int main()
     transRays = cam.getTransformedRays();
 
     // Creating the tracer object and passing it all the objects in the scene and all the camera rays
-    Tracer tracer(meshes, transRays, IMAGE_WIDTH, IMAGE_HEIGHT);
+    Tracer tracer(scene, transRays, IMAGE_WIDTH, IMAGE_HEIGHT);
 
     // DOING BUCKET RENDERING
     const int divisions = 40;
@@ -87,23 +84,29 @@ int main()
     //// copy it into a vector and shuffle it
     //std::shuffle(bucketList.begin(), bucketList.end(), e);
 
+    bool writing_file = false;
+
     // Creating a thread for image display and detaching it
     std::thread image_thread(
         [&]()
         {
             while (true)
             {
-                // Display the rendered bucket
-                cv::resize(image, outImg, cv::Size(int(IMAGE_WIDTH / ANTI_ALIASING), int(IMAGE_HEIGHT / ANTI_ALIASING)), 0, 0, CV_INTER_AREA);
-                cv::imshow("Image", outImg);
-                cv::waitKey(1);
+                if (!writing_file)
+                {
+                    // Display the rendered bucket
+                    image.convertTo(outImg, CV_8UC3); // Converting to uint8 before resizing
+                    cv::resize(outImg, outImg, cv::Size(int(IMAGE_WIDTH / ANTI_ALIASING), int(IMAGE_HEIGHT / ANTI_ALIASING)), 0, 0, CV_INTER_AREA);
+                    cv::imshow("Image", outImg);
+                    cv::waitKey(1);
+                }
             }
         }
     );
 
-    image_thread.detach(); // Let it run in parallel
+    //image_thread.detach(); // Let it run in parallel
 
-    const int samples = 1024;
+    const int samples = 1000;
     // Parallel Rendering and updating image
     for (int s=0; s<samples; s++)
     {
@@ -122,13 +125,13 @@ int main()
                 {
                     // Coloring the image pixel using the final color values
                     // Getting the color value at this x,y
-                    cv::Vec3b color = image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
+                    cv::Vec3f color = image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
                     // Altering the color value with gamma-2 correction
-                    color[0] = (color[0] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].z) * 255.99f) / float(s + 1);
-                    color[1] = (color[1] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].y) * 255.99f) / float(s + 1);
-                    color[2] = (color[2] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].x) * 255.99f) / float(s + 1);
+                    color[0] = (color[0] * float(s) + (colors[(int)(x + y * bucketSize.x)].z * 255)) / float(s + 1);
+                    color[1] = (color[1] * float(s) + (colors[(int)(x + y * bucketSize.x)].y * 255)) / float(s + 1);
+                    color[2] = (color[2] * float(s) + (colors[(int)(x + y * bucketSize.x)].x * 255)) / float(s + 1);
 
-                    image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
+                    image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
                 }
             }
 
@@ -136,8 +139,12 @@ int main()
             delete[] colors;
         }
 
-        if(s%10 == 0)
+        if (s % 10 == 0)
+        {
+            writing_file = true;
             cv::imwrite("./Renders/" + startTime + std::to_string(s) + ".jpg", outImg);
+            writing_file = false;
+        }
 
         std::cout << "Render-pass  :" << s << "\n";
     }

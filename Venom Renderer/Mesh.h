@@ -18,6 +18,11 @@ class Mesh
 public:
     // List of faces in this scene
     std::vector<Face> faces; // Required for octree building and intersection queries
+    
+    // For Importance sampling
+    std::vector<Face*> emissives;
+    std::vector<float> lightImportancePDF;
+    std::vector<float> lightImportanceCDF;
 
     bool recalculated_normals = false; // Required for shading purposes
 
@@ -40,6 +45,32 @@ public:
             {
                 faces[i].mat = &defaultMaterial;
             }
+        }
+
+        // Finding out the emissive faces for importance sampling
+        float sum = 0;
+        for (int i=0; i<faces.size(); i++)
+        {
+            if (faces[i].mat->emission > 0.f) {
+                emissives.push_back(&faces[i]);
+                sum += faces[i].mat->emission;
+            }
+        }
+        std::cout << "Emission Sum:         " << sum << "\n";
+        std::cout << "Emissives Count:      " << emissives.size() << "\n";
+
+        // Contructing Propotional PDF
+        for (int i=0; i<emissives.size(); i++)
+        {
+            lightImportancePDF.push_back(emissives[i]->mat->emission / sum);
+        }
+
+        // Constructing CDF
+        float runningSum = 0;
+        for (int i=0; i<emissives.size(); i++)
+        {
+            runningSum += lightImportancePDF[i];
+            lightImportanceCDF.push_back(runningSum);
         }
 
         std::cout << "Final face count:     " << faces.size() << "\n";

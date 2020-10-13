@@ -84,6 +84,10 @@ void loadOBJ(std::string inputfile,
 
         temp_mat.clearcoat = t_materials[m].shininess;
 
+        temp_mat.emission = std::max({ float(t_materials[m].emission[0]),
+            float(t_materials[m].emission[1]),
+            float(t_materials[m].emission[2]) });
+
         materials.push_back(temp_mat);
     }
 
