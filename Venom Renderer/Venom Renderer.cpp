@@ -34,21 +34,21 @@ int main()
     clock_t tStart = clock();
 
     // Creating image canvas
-    float ANTI_ALIASING = 0.25f; // 2X
-    int IMAGE_WIDTH = 640 * ANTI_ALIASING;
-    int IMAGE_HEIGHT = 480 * ANTI_ALIASING;    // 16:9
+    float ANTI_ALIASING = 1.f; // 2X
+    int IMAGE_WIDTH = 1280 * ANTI_ALIASING;
+    int IMAGE_HEIGHT = 720 * ANTI_ALIASING;    // 16:9
     cv::Mat image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_32FC3, cv::Scalar(45, 40, 90));
     cv::Mat outImg;
 
     // Creating and preparing camera object
-    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, 4.f/3.f, glm::radians(45.f));
+    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, float(IMAGE_WIDTH)/float(IMAGE_HEIGHT), glm::radians(45.f));
     cam.rotate(0.f, 0.f, 0.f);
 
     //cam.translate(glm::vec3(0.f, 2.5f, 3.5f)); // for cornell box
     //cam.translate(glm::vec3(-0.02f, 0.09f, 0.135f)); // for stanford bunny
     //cam.translate(glm::vec3(0.f, 0.5f, 5.f)); // for mit sphere
     //cam.translate(glm::vec3(0.f, 1.f, 4.5f)); // for teapot
-    cam.translate(glm::vec3(-0.6f, 0.9f, 7.5f)); // for venom sample scene
+    cam.translate(glm::vec3(-0.1f, 0.9f, 7.f)); // for venom sample scene
 
     // Whole scene is a single mesh with many mant faces
     Mesh scene("./Assets/venom_sample_scene.obj");
@@ -127,9 +127,9 @@ int main()
                     // Getting the color value at this x,y
                     cv::Vec3f color = image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
                     // Altering the color value with gamma-2 correction
-                    color[0] = (color[0] * float(s) + (colors[(int)(x + y * bucketSize.x)].z * 255)) / float(s + 1);
-                    color[1] = (color[1] * float(s) + (colors[(int)(x + y * bucketSize.x)].y * 255)) / float(s + 1);
-                    color[2] = (color[2] * float(s) + (colors[(int)(x + y * bucketSize.x)].x * 255)) / float(s + 1);
+                    color[0] = (color[0] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].z) * 255.99f) / float(s + 1);
+                    color[1] = (color[1] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].y) * 255.99f) / float(s + 1);
+                    color[2] = (color[2] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].x) * 255.99f) / float(s + 1);
 
                     image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
                 }
@@ -139,7 +139,7 @@ int main()
             delete[] colors;
         }
 
-        if (s % 10 == 0)
+        if (s % 1 == 0)
         {
             writing_file = true;
             cv::imwrite("./Renders/" + startTime + std::to_string(s) + ".jpg", outImg);

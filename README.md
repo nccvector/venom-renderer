@@ -2,7 +2,7 @@
 ###### A c++ raytracer for light simulation
 #
 
-<img src="/Venom Renderer/Renders/SampleScene.jpg"
+<img src="/Venom Renderer/Renders/2Bunny1Ball.jpg"
      alt="Markdown Monster icon"
      style="float: left; margin-right: 10px;" /> 
 
@@ -23,6 +23,6 @@
 - [x] Disney BRDF
 - [x] Triangles
 - [x] Voxels
-- [ ] Importance Sampling
+- [x] Importance Sampling
 - [ ] Miltiple importance sampling
-- [ ] Seperate materials for loaded objects
+- [x] Seperate materials for loaded objects

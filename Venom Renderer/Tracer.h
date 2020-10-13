@@ -59,7 +59,7 @@ public:
         return glm::vec3(x, r1, z);
     }
 
-    glm::vec3 trace(Ray ray, int bounces=1, int samples=1)
+    glm::vec3 trace(Ray ray, int bounces=2, int samples=8)
     {
         HitInfo hitInfo;
         hitInfo.hit = false;
@@ -148,13 +148,17 @@ public:
                 //std::cout << "Sampled indirect ligth:  " << uniformPDF << "\n";
             }
 
-            glm::vec3 specularColor(0);
+            // Disney
+            /*glm::vec3 specularColor(0);
             glm::vec3 diffuse(0);
             glm::vec3 brdf = hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, Nt, Nb,
-                specularColor, diffuse);
+                specularColor, diffuse);*/
+
+            // Oren-nayar
+            glm::vec3 brdf = hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, Nt, Nb);
 
             indirectLight += hitInfo.face->mat->baseColor * hitInfo.face->mat->emission;
-            indirectLight += brdf * trace(diffuse_ray, bounces - 1, samples) *
+            indirectLight += brdf * trace(diffuse_ray, bounces - 1, 1) *
                 glm::dot(hitInfo.normal, diffuse_ray.direction) * lightImportanceSamplingWeight / uniformPDF;
         }
 
