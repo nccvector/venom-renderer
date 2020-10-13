@@ -103,34 +103,43 @@ int main()
 
     image_thread.detach(); // Let it run in parallel
 
+    const int samples = 1024;
     // Parallel Rendering and updating image
-    #pragma omp parallel for num_threads(8)
-    for (int i = 0; i < divisions * divisions; i++) {
-        // Creating a color array of bucket size in advance (Thanks to Imre Palik for finding a memory leak)
-        glm::vec3* colors = new glm::vec3[int(bucketSize.x) * int(bucketSize.y)]; // "new" keyword now gets deleted at the end
+    for (int s=0; s<samples; s++)
+    {
+        #pragma omp parallel for num_threads(8)
+        for (int i = 0; i < divisions * divisions; i++) {
+            // Creating a color array of bucket size in advance (Thanks to Imre Palik for finding a memory leak)
+            glm::vec3* colors = new glm::vec3[int(bucketSize.x) * int(bucketSize.y)]; // "new" keyword now gets deleted at the end
 
-        // Filling colors array
-        tracer.colorFromRegion(bucketList[i], colors);
+            // Filling colors array
+            tracer.colorFromRegion(bucketList[i], colors);
 
-        // Coloring image using the colors obtained from the rendered region
-        for (int y = 0; y < bucketSize.y; y++)
-        {
-            for (int x = 0; x < bucketSize.x; x++)
+            // Coloring image using the colors obtained from the rendered region
+            for (int y = 0; y < bucketSize.y; y++)
             {
-                // Coloring the image pixel using the final color values
-                // Getting the color value at this x,y
-                cv::Vec3b color = image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
-                // Altering the color value with gamma-2 correction
-                color[0] = sqrt(colors[(int)(x + y * bucketSize.x)].z) * 255.99;
-                color[1] = sqrt(colors[(int)(x + y * bucketSize.x)].y) * 255.99;
-                color[2] = sqrt(colors[(int)(x + y * bucketSize.x)].x) * 255.99;
-                // set a pixel back to the image
-                image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
+                for (int x = 0; x < bucketSize.x; x++)
+                {
+                    // Coloring the image pixel using the final color values
+                    // Getting the color value at this x,y
+                    cv::Vec3b color = image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
+                    // Altering the color value with gamma-2 correction
+                    color[0] = (color[0] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].z) * 255.99f) / float(s + 1);
+                    color[1] = (color[1] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].y) * 255.99f) / float(s + 1);
+                    color[2] = (color[2] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].x) * 255.99f) / float(s + 1);
+
+                    image.at<cv::Vec3b>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
+                }
             }
+
+            // Clearing the memory
+            delete[] colors;
         }
 
-        // Clearing the memory
-        delete[] colors;
+        if(s%10 == 0)
+            cv::imwrite("./Renders/" + startTime + std::to_string(s) + ".jpg", outImg);
+
+        std::cout << "Render-pass  :" << s << "\n";
     }
 
     std::cout << "\nTime taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC;

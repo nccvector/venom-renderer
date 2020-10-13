@@ -16,11 +16,6 @@
 class Mesh
 {
 public:
-    // List of vertices, uvs and normals in the scene
-	std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> normals;
-
     // List of faces in this scene
     std::vector<Face> faces; // Required for octree building and intersection queries
 
@@ -28,70 +23,48 @@ public:
 
     // List of materials required by this scene
     std::vector<Material> materials;
+    Material defaultMaterial;
 
 	Octree* octree;
 
     // Constructor
     Mesh(std::string infile)
     {
-        loadOBJ(infile, this->vertices, this->uvs, this->normals);
-        
-        std::cout << vertices.size() << "\n";
+        loadOBJ(infile, this->faces, this->materials);
+        std::cout << "Loaded scene successfully\n";
 
-        // Recalculate normals if missing
-        if (normals.size() == 0)
+        // Apply a default material to any face that has no material
+        for (int i=0; i<faces.size(); i++)
         {
-            std::cout << "NORMALS ARE MISSING...RECALCULATING...\n";
-            this->recalculateNormals();
+            if (faces[i].mat == NULL)
+            {
+                faces[i].mat = &defaultMaterial;
+            }
         }
 
-        // Creating material list
-        Material mat;
-        materials.push_back(mat);
+        std::cout << "Final face count:     " << faces.size() << "\n";
 
-        
-        // Computing faces
-        // adding faces to octree
-        for (int i = 0; i < vertices.size() / 3; i++)
-        {
-            Face temp_face;
-
-            // Getting vertices from face
-            temp_face.index = i;
-            temp_face.vertices[0] = vertices[3 * i];
-            temp_face.vertices[1] = vertices[3 * i + 1];
-            temp_face.vertices[2] = vertices[3 * i + 2];
-
-            // Pointer to the face material
-            temp_face.mat = &this->materials[0]; // Pushing only the first material from list
-
-            faces.push_back(temp_face);
-        }
+        // Perform a normals check here...
 
         // Computing octree
         this->computeOctree();
     }
 
-    void recalculateNormals()
+    //void recalculateNormals()
+    //{
+    //    for (int i = 0; i < faces.size(); i++)
+    //    {
+    //        this->faces[i].normals.push_back(this->getFaceNormal(i));
+    //    }
+
+    //    recalculated_normals = true;
+    //}
+
+    glm::vec3 getFaceNormal(Face face)
     {
-        this->normals.clear(); // Clearing normals
-        for (int i = 0; i < vertices.size() / 3; i++)
-        {
-            this->normals.push_back(this->getFaceNormal(i));
-        }
 
-        recalculated_normals = true;
-    }
-
-    glm::vec3 getFaceNormal(uint32_t face)
-    {
-        // Getting vertices from face
-        glm::vec3 v0 = vertices[3 * face];
-        glm::vec3 v1 = vertices[3 * face + 1];
-        glm::vec3 v2 = vertices[3 * face + 2];
-
-        glm::vec3 A = glm::normalize(v1 - v0);
-        glm::vec3 B = glm::normalize(v2 - v1);
+        glm::vec3 A = glm::normalize(face.vertices[1] - face.vertices[0]);
+        glm::vec3 B = glm::normalize(face.vertices[2] - face.vertices[1]);
 
         return glm::normalize(glm::cross(A, B));
     }
@@ -101,34 +74,38 @@ public:
         // Finding the min/max bounds of objects
         glm::vec3 minCoords(1000000, 1000000, 1000000);
         glm::vec3 maxCoords(-1000000, -1000000, -1000000);
-        for (int i = 0; i < vertices.size(); i++)
+        for (int f = 0; f < faces.size(); f++)
         {
-            // Assigning min values
-            if (vertices[i].x < minCoords.x)
+            // Looping over vertices of this face
+            for (int i=0; i<3; i++)
             {
-                minCoords.x = vertices[i].x;
-            }
-            if (vertices[i].y < minCoords.y)
-            {
-                minCoords.y = vertices[i].y;
-            }
-            if (vertices[i].z < minCoords.z)
-            {
-                minCoords.z = vertices[i].z;
-            }
+                // Assigning min values
+                if (faces[f].vertices[i].x < minCoords.x)
+                {
+                    minCoords.x = faces[f].vertices[i].x;
+                }
+                if (faces[f].vertices[i].y < minCoords.y)
+                {
+                    minCoords.y = faces[f].vertices[i].y;
+                }
+                if (faces[f].vertices[i].z < minCoords.z)
+                {
+                    minCoords.z = faces[f].vertices[i].z;
+                }
 
-            // Assigning max values
-            if (vertices[i].x > maxCoords.x)
-            {
-                maxCoords.x = vertices[i].x;
-            }
-            if (vertices[i].y > maxCoords.y)
-            {
-                maxCoords.y = vertices[i].y;
-            }
-            if (vertices[i].z > maxCoords.z)
-            {
-                maxCoords.z = vertices[i].z;
+                // Assigning max values
+                if (faces[f].vertices[i].x > maxCoords.x)
+                {
+                    maxCoords.x = faces[f].vertices[i].x;
+                }
+                if (faces[f].vertices[i].y > maxCoords.y)
+                {
+                    maxCoords.y = faces[f].vertices[i].y;
+                }
+                if (faces[f].vertices[i].z > maxCoords.z)
+                {
+                    maxCoords.z = faces[f].vertices[i].z;
+                }
             }
         }
 
@@ -155,7 +132,7 @@ public:
         // Checking intersection aginst closest faces
         for (int i=0; i<closest_faces.size(); i++)
         {
-            float t = rayFaceIntersect(ray, closest_faces[i]->index);
+            float t = rayFaceIntersect(ray, closest_faces[i]);
 
             if (t > 0.f && t < hitInfo.hitDistance)
             {
@@ -163,12 +140,10 @@ public:
                 hitInfo.hitDistance = t;
                 hitInfo.hitPoint = ray.origin + ray.direction * t;
 
-                if (!recalculated_normals)
-                    hitInfo.normal = glm::normalize(normals[3 * closest_faces[i]->index] + 
-                        normals[3 * closest_faces[i]->index + 1] + 
-                        normals[3 * closest_faces[i]->index + 2]);
-                else
-                    hitInfo.normal = normals[closest_faces[i]->index];
+                // Getting the average normal
+                hitInfo.normal = glm::normalize(closest_faces[i]->normals[0] + 
+                    closest_faces[i]->normals[1] +
+                    closest_faces[i]->normals[2]);
                 
                 hitInfo.face = closest_faces[i];
             }
@@ -177,14 +152,9 @@ public:
         return hitInfo;
     }
 
-    float rayFaceIntersect(Ray ray, uint32_t face)
+    float rayFaceIntersect(Ray ray, Face* face)
     {
-        // Getting vertices from face
-        glm::vec3 v0 = vertices[3 * face];
-        glm::vec3 v1 = vertices[3 * face + 1];
-        glm::vec3 v2 = vertices[3 * face + 2];
-
-        return rayTriangleIntersect(ray, v0, v1, v2);
+        return rayTriangleIntersect(ray, face->vertices[0], face->vertices[1], face->vertices[2]);
     }
 
     float rayTriangleIntersect(

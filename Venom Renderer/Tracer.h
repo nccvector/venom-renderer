@@ -59,7 +59,7 @@ public:
         return glm::vec3(x, r1, z);
     }
 
-    glm::vec3 trace(Ray ray, int bounces=3, int samples=64)
+    glm::vec3 trace(Ray ray, int bounces=2, int samples=1)
     {
         HitInfo hitInfo;
         hitInfo.hit = false;
