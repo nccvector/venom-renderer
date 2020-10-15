@@ -5,7 +5,9 @@
 #include "Voxel.h"
 #include "Ray.h"
 #include "Face.h"
+#include "HitInfo.h"
 #include "TriangleBoxIntersection.h"
+#include "RayTriangleIntersection.h"
 
 class Octree
 {
@@ -24,7 +26,7 @@ class Octree
 	Octree* topSouthEast;
 
 	int depth = 0;
-	int max_depth = 20;
+	int max_depth = 1000;
 
 public:
 	Octree()
@@ -33,7 +35,7 @@ public:
 	}
 
 	// Constructor
-	Octree(Voxel boundary, int voxel_capacity = 8, int depth = 0)
+	Octree(Voxel boundary, int voxel_capacity = 1, int depth = 0)
 	{
 		this->boundary = boundary;
 		this->voxel_capacity = voxel_capacity;
@@ -123,7 +125,7 @@ public:
 		}
 	}
 
-	void query(Ray ray, std::vector<Face*>& objectList)
+	void query(Ray ray, HitInfo* hitInfo)
 	{
 
 		// Lets just get out if ray does not intersects this boundary
@@ -132,22 +134,31 @@ public:
 			return;
 		}
 
-		// Copy the objects in prim list to the object list
-		objectList.reserve(objectList.size() + this->face_list.size());
-		objectList.insert(objectList.end(), this->face_list.begin(), this->face_list.end());
+		// Check for intersection with faces inside this voxel
+		for (int i = 0; i < this->face_list.size(); i++)
+		{
+			float t = rayTriangleIntersect(ray, face_list[i]);
+
+			if (t > 0.f && t < hitInfo->hitDistance)
+			{
+				hitInfo->hit = true;
+				hitInfo->face = face_list[i];
+				hitInfo->hitDistance = t;
+			}
+		}
 
 		// Adding the objects of children too if they exist
 		if (this->divided)
 		{
-			this->bottomNorthWest->query(ray, objectList);
-			this->bottomNorthEast->query(ray, objectList);
-			this->bottomSouthWest->query(ray, objectList);
-			this->bottomSouthEast->query(ray, objectList);
+			this->bottomNorthWest->query(ray, hitInfo);
+			this->bottomNorthEast->query(ray, hitInfo);
+			this->bottomSouthWest->query(ray, hitInfo);
+			this->bottomSouthEast->query(ray, hitInfo);
 
-			this->topNorthWest->query(ray, objectList);
-			this->topNorthEast->query(ray, objectList);
-			this->topSouthWest->query(ray, objectList);
-			this->topSouthEast->query(ray, objectList);
+			this->topNorthWest->query(ray, hitInfo);
+			this->topNorthEast->query(ray, hitInfo);
+			this->topSouthWest->query(ray, hitInfo);
+			this->topSouthEast->query(ray, hitInfo);
 		}
 
 		// Returning the filled list

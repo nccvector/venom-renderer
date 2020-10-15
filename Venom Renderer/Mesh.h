@@ -157,24 +157,7 @@ public:
         hitInfo.texcoord = glm::vec2(0);
         hitInfo.hitDistance = 1000000.f;
 
-        int faceHitIndex;
-
-        // Getting the closest faces list
-        std::vector<Face*> closest_faces;
-        octree->query(ray, closest_faces);
-
-        // Checking intersection aginst closest faces
-        for (int i=0; i<closest_faces.size(); i++)
-        {
-            float t = rayFaceIntersect(ray, closest_faces[i]);
-
-            if (t > 0.f && t < hitInfo.hitDistance)
-            {
-                hitInfo.hit = true;
-                faceHitIndex = i;
-                hitInfo.hitDistance = t;
-            }
-        }
+        octree->query(ray, &hitInfo);
 
         // Filling necessary information only if hit something
         if (hitInfo.hit)
@@ -183,12 +166,9 @@ public:
             hitInfo.hitPoint = ray.origin + ray.direction * hitInfo.hitDistance;
 
             // Getting the average normal
-            hitInfo.normal = glm::normalize(closest_faces[faceHitIndex]->normals[0] +
-                closest_faces[faceHitIndex]->normals[1] +
-                closest_faces[faceHitIndex]->normals[2]);
-
-            // keeping a record of the face
-            hitInfo.face = closest_faces[faceHitIndex];
+            hitInfo.normal = glm::normalize(hitInfo.face->normals[0] +
+                hitInfo.face->normals[1] +
+                hitInfo.face->normals[2]);
 
             // Calculating bary coordinates
             float b0, b1, b2;
@@ -232,41 +212,5 @@ public:
         *b2 = t;
 
         return ((r <= 1.f) && (t <= 1.f) && (r + t <= 1.f));
-    }
-
-    float rayFaceIntersect(Ray ray, Face* face)
-    {
-        return rayTriangleIntersect(ray, face->vertices[0], face->vertices[1], face->vertices[2]);
-    }
-
-    float rayTriangleIntersect(
-        Ray ray,
-        glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
-    {
-        glm::vec3 v0v1 = v1 - v0;
-        glm::vec3 v0v2 = v2 - v0;
-        glm::vec3 pvec = glm::cross(glm::vec3(ray.direction), v0v2);
-        float det = glm::dot(v0v1, pvec);
-
-        // if the determinant is negative the triangle is backfacing
-        // if the determinant is close to 0, the ray misses the triangle
-        if (det < 0.00000000001) return -1.f;
-
-        // ray and triangle are parallel if det is close to 0
-        if (fabs(det) < 0.00000000001) return -1.f;
-
-        float invDet = 1 / det;
-
-        glm::vec3 tvec = glm::vec3(ray.origin) - v0;
-        float u = glm::dot(tvec, pvec) * invDet;
-        if (u < 0 || u > 1) return -1.f;
-
-        glm::vec3 qvec = glm::cross(tvec, v0v1);
-        float v = glm::dot(glm::vec3(ray.direction), qvec) * invDet;
-        if (v < 0 || u + v > 1) return -1.f;
-
-        float t = glm::dot(v0v2, qvec) * invDet;
-
-        return t;
     }
 };

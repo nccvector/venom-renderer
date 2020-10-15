@@ -56,5 +56,8 @@
     <ClInclude Include="HitInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RayTriangleIntersection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

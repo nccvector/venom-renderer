@@ -168,6 +168,7 @@
     <ClInclude Include="OBJLoader.h" />
     <ClInclude Include="Octree.h" />
     <ClInclude Include="Ray.h" />
+    <ClInclude Include="RayTriangleIntersection.h" />
     <ClInclude Include="Tracer.h" />
     <ClInclude Include="TriangleBoxIntersection.h" />
     <ClInclude Include="Vertex.h" />
