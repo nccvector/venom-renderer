@@ -154,7 +154,10 @@ public:
     {
         HitInfo hitInfo;
         hitInfo.hit = false;
+        hitInfo.texcoord = glm::vec2(0);
         hitInfo.hitDistance = 1000000.f;
+
+        int faceHitIndex;
 
         // Getting the closest faces list
         std::vector<Face*> closest_faces;
@@ -168,19 +171,67 @@ public:
             if (t > 0.f && t < hitInfo.hitDistance)
             {
                 hitInfo.hit = true;
+                faceHitIndex = i;
                 hitInfo.hitDistance = t;
-                hitInfo.hitPoint = ray.origin + ray.direction * t;
-
-                // Getting the average normal
-                hitInfo.normal = glm::normalize(closest_faces[i]->normals[0] + 
-                    closest_faces[i]->normals[1] +
-                    closest_faces[i]->normals[2]);
-                
-                hitInfo.face = closest_faces[i];
             }
         }
 
+        // Filling necessary information only if hit something
+        if (hitInfo.hit)
+        {
+            // Calculating remaining params of hitInfo
+            hitInfo.hitPoint = ray.origin + ray.direction * hitInfo.hitDistance;
+
+            // Getting the average normal
+            hitInfo.normal = glm::normalize(closest_faces[faceHitIndex]->normals[0] +
+                closest_faces[faceHitIndex]->normals[1] +
+                closest_faces[faceHitIndex]->normals[2]);
+
+            // keeping a record of the face
+            hitInfo.face = closest_faces[faceHitIndex];
+
+            // Calculating bary coordinates
+            float b0, b1, b2;
+            GetBaryCoords(hitInfo.face->vertices[0], 
+                hitInfo.face->vertices[1], hitInfo.face->vertices[2], 
+                hitInfo.hitPoint, &b1, &b2);
+
+            b0 = 1.f - b1 - b2;
+
+            // Texcoord at hitPoint is
+            hitInfo.texcoord = b0 * hitInfo.face->uvs[0] +
+                b1 * hitInfo.face->uvs[1] + b2 * hitInfo.face->uvs[2];
+        }
+
         return hitInfo;
+    }
+
+    bool GetBaryCoords(glm::vec3& p0, glm::vec3& p1, glm::vec3& p2,
+        glm::vec3& hitPoint, float* b1, float* b2) {
+        glm::vec3 u = p1 - p0;
+        glm::vec3 v = p2 - p0;
+        glm::vec3 w = hitPoint - p0;
+
+        glm::vec3 vCrossW = glm::cross(v, w);
+        glm::vec3 vCrossU = glm::cross(v, u);
+
+        if (glm::dot(vCrossW, vCrossU) < 0.f)
+            return false;
+
+        glm::vec3 uCrossW = glm::cross(u, w);
+        glm::vec3 uCrossV = glm::cross(u, v);
+
+        if (glm::dot(uCrossW, uCrossV) < 0.f)
+            return false;
+
+        const float denom = glm::length(uCrossV);
+        const float r = glm::length(vCrossW) / denom;
+        const float t = glm::length(uCrossW) / denom;
+
+        *b1 = r;
+        *b2 = t;
+
+        return ((r <= 1.f) && (t <= 1.f) && (r + t <= 1.f));
     }
 
     float rayFaceIntersect(Ray ray, Face* face)

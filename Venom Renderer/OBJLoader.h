@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <glm.hpp>
+#include "opencv2/opencv.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #include "tiny_obj_loader.h"
@@ -88,6 +89,17 @@ void loadOBJ(std::string inputfile,
             float(t_materials[m].emission[1]),
             float(t_materials[m].emission[2]) });
 
+        std::cout << (t_materials[m].diffuse_texname) << "\n";
+
+        if (t_materials[m].diffuse_texname != "")
+        {
+            temp_mat.baseColor_tex = cv::imread(t_materials[m].diffuse_texname);
+        }
+        else
+        {
+            temp_mat.baseColor_tex = NULL;
+        }
+
         materials.push_back(temp_mat);
     }
 
@@ -126,13 +138,13 @@ void loadOBJ(std::string inputfile,
                 // Add uvs or normals onyl when they are available
                 if (size_texcoords > 0)
                 {
-                    // Problem with uvs at the moment
-                    //// Extracting uv at vertex
-                    //glm::vec2 uv{
-                    //    attrib.texcoords[2 * idx.texcoord_index + 0],
-                    //    attrib.texcoords[2 * idx.texcoord_index + 1]
-                    //};
-                    //temp_face.uvs[v] = uv;
+                    //Problem with uvs at the moment
+                    // Extracting uv at vertex
+                    glm::vec2 uv{
+                        attrib.texcoords[2 * idx.texcoord_index + 0],
+                        attrib.texcoords[2 * idx.texcoord_index + 1]
+                    };
+                    temp_face.uvs[v] = uv;
                 }
 
                 if (size_normals > 0)

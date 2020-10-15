@@ -34,24 +34,24 @@ int main()
     clock_t tStart = clock();
 
     // Creating image canvas
-    float ANTI_ALIASING = 1.f; // 2X
-    int IMAGE_WIDTH = 1280 * ANTI_ALIASING;
-    int IMAGE_HEIGHT = 720 * ANTI_ALIASING;    // 16:9
+    float ANTI_ALIASING = 1.0f; // 2X
+    int IMAGE_WIDTH = 640 * ANTI_ALIASING;
+    int IMAGE_HEIGHT = 480 * ANTI_ALIASING;    // 16:9
     cv::Mat image(IMAGE_HEIGHT, IMAGE_WIDTH, CV_32FC3, cv::Scalar(45, 40, 90));
     cv::Mat outImg;
 
     // Creating and preparing camera object
     Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, float(IMAGE_WIDTH)/float(IMAGE_HEIGHT), glm::radians(45.f));
-    cam.rotate(0.f, 0.f, 0.f);
+    cam.rotate(0.f, -10.f, 0.f);
 
     //cam.translate(glm::vec3(0.f, 2.5f, 3.5f)); // for cornell box
     //cam.translate(glm::vec3(-0.02f, 0.09f, 0.135f)); // for stanford bunny
     //cam.translate(glm::vec3(0.f, 0.5f, 5.f)); // for mit sphere
     //cam.translate(glm::vec3(0.f, 1.f, 4.5f)); // for teapot
-    cam.translate(glm::vec3(-0.1f, 0.9f, 7.f)); // for venom sample scene
+    cam.translate(glm::vec3(-0.5f, 1.f, 12.f)); // for venom sample scene
 
     // Whole scene is a single mesh with many mant faces
-    Mesh scene("./Assets/venom_sample_scene.obj");
+    Mesh scene("./Assets/sample-scenes/venom_sample_scene.obj");
     std::cout << "\nSuccessfully Loaded Scene " << "\n";
 
     // Creating a ray pointer to iterate over the array of rays

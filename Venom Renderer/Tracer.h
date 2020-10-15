@@ -59,24 +59,9 @@ public:
         return glm::vec3(x, r1, z);
     }
 
-    glm::vec3 trace(Ray ray, int bounces=2, int samples=8)
+    glm::vec3 trace(Ray ray, int bounces=1, int samples=8)
     {
-        HitInfo hitInfo;
-        hitInfo.hit = false;
-
-        // closest hit distance and id of closest object
-        float closest_distance = 10000.f;
-
-        // Getting closest hit info from the scene
-        HitInfo tempHitInfo = this->scene->closestIntersection(ray);
-
-        if (tempHitInfo.hit)
-        {
-            if (tempHitInfo.hitDistance > 0.f && tempHitInfo.hitDistance < closest_distance)
-            {
-                hitInfo = tempHitInfo;
-            }
-        }
+        HitInfo hitInfo = this->scene->closestIntersection(ray);
 
         // Return sky color if hit nothing
         if (!hitInfo.hit)
@@ -85,15 +70,15 @@ public:
         }
         
         // return color*ambienLight if bounces are over
-        if(bounces <= 0)
+        if(bounces < 0)
         {
-            return glm::vec3(0.1f, 0.1f, 0.1f) * hitInfo.face->mat->baseColor;
+            return glm::vec3(0.01f, 0.01f, 0.01f);
         }
 
         glm::vec3 Nt, Nb;
         createCoordinateSystem(hitInfo.normal, Nt, Nb);
 
-        float lightImportanceSamplingWeight = 0.6f; // 50 percent biasness towards light sources
+        float lightImportanceSamplingWeight = 0.55f; // 50 percent biasness towards light sources
         // I.e 0.5 will be multiplied by the pdf taken from the light pdf list
         float uniformPDF = (1 / (2 * M_PI)) * (1-lightImportanceSamplingWeight); // Uniform pdf over semi-sphere
         glm::vec3 indirectLight(0.f, 0.f, 0.f); // Starting from darkness
@@ -154,8 +139,10 @@ public:
             glm::vec3 brdf = hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, Nt, Nb,
                 specularColor, diffuse);*/
 
+            //std::cout << hitInfo.texcoord.x << " " << hitInfo.texcoord.y << "\n";
+
             // Oren-nayar
-            glm::vec3 brdf = hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, Nt, Nb);
+            glm::vec3 brdf = hitInfo.face->mat->BRDF(diffuse_ray.direction, -ray.direction, hitInfo.normal, hitInfo.texcoord);
 
             indirectLight += hitInfo.face->mat->baseColor * hitInfo.face->mat->emission;
             indirectLight += brdf * trace(diffuse_ray, bounces - 1, 1) *

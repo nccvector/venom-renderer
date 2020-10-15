@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm.hpp>
+#include "opencv2/opencv.hpp"
 
 # define PI           3.1415926535f
 
@@ -23,6 +24,10 @@ public:
 
     // Oren-nayar param
     float sigma;
+
+    // Textures
+    cv::Mat baseColor_tex;
+    cv::Size baseColor_tex_size;
 
     // Constructor
 	Material()
@@ -52,8 +57,51 @@ public:
     //}
 
     // Oren-nayar BRDF
-    glm::vec3 BRDF(glm::vec3 L, glm::vec3 V, glm::vec3 N, glm::vec3 X, glm::vec3 Y)
+    glm::vec3 BRDF(glm::vec3 L, glm::vec3 V, glm::vec3 N, glm::vec2 texcoord)
     {
+        // Get color from image if exists
+        if (!baseColor_tex.empty())
+        {
+            int width = baseColor_tex.size().width * texcoord.x;
+            int height = baseColor_tex.size().height - baseColor_tex.size().height * texcoord.y;
+            //int height = baseColor_tex.size().height * texcoord.y;
+
+            if (width < 0)
+            {
+                int absWidth = glm::abs(width);
+                absWidth = absWidth % baseColor_tex.size().width;
+                width = baseColor_tex.size().width - absWidth;
+            }
+
+            if (width >= baseColor_tex.size().width)
+                width = width % baseColor_tex.size().width;
+
+            if (height < 0)
+            {
+                int absHeight= glm::abs(height);
+                absHeight = absHeight % baseColor_tex.size().height;
+                height = baseColor_tex.size().width - absHeight;
+            }
+
+            if (height >= baseColor_tex.size().height)
+                height = height % baseColor_tex.size().height;
+
+            if (width < 0 || height < 0)
+            {
+                std::cout << texcoord.x << " " << texcoord.y << "\n";
+            }
+
+            cv::Vec3f texColor = baseColor_tex.at<cv::Vec3b>(
+                cv::Point(
+                    width,
+                    height
+                )
+            );
+            baseColor.x = texColor[2]/255.f;
+            baseColor.y = texColor[1]/255.f;
+            baseColor.z = texColor[0]/255.f;
+        }
+
         float VdotN = dot(V, N);
         float LdotN = dot(L, N);
         float theta_r = acos(VdotN);
