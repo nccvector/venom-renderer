@@ -28,5 +28,5 @@
 - [x] Triangles
 - [x] Voxels
 - [x] Importance Sampling
-- [ ] Miltiple importance sampling
+- [ ] Multiple importance sampling
 - [x] Seperate materials for loaded objects
