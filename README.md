@@ -1,5 +1,5 @@
 # Venom-Renderer
-###### A dirty C++ raytraced render just to learn C++
+###### A dirty C++ raytraced renderer just to learn C++
 #
 
 <img src="/Venom Renderer/Renders/2Bunny1Ball.jpg"
