@@ -4,18 +4,17 @@
 
 #include "Face.h"
 
-struct HitInfo
-{
-	// Logical properties
-	bool hit;
+struct HitInfo {
+    // Logical properties
+    bool hit;
 
-	// Geometric properties
-	float hitDistance;
-	glm::vec3 normal;
+    // Geometric properties
+    float hitDistance;
+    glm::vec3 normal;
 
-	glm::vec3 hitPoint;
-	glm::vec2 texcoord;
+    glm::vec3 hitPoint;
+    glm::vec2 texcoord;
 
-	// Material properties
-	Face* face;
+    // Material properties
+    Face *face;
 };

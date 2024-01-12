@@ -14,10 +14,9 @@
 #include "OBJLoader.h"
 
 std::default_random_engine generator;
-std::uniform_real_distribution<float> distribution{ 0, 1 };
+std::uniform_real_distribution<float> distribution{0, 1};
 
-std::string NowToString()
-{
+std::string NowToString() {
     std::chrono::system_clock::time_point p = std::chrono::system_clock::now();
     time_t t = std::chrono::system_clock::to_time_t(p);
     char str[26];
@@ -25,8 +24,7 @@ std::string NowToString()
     return std::string(str);
 }
 
-int main()
-{
+int main() {
     std::string startTime = NowToString();
     replace(startTime.begin(), startTime.end(), ':', '_');
     replace(startTime.begin(), startTime.end(), '\n', '_');
@@ -41,7 +39,7 @@ int main()
     cv::Mat outImg;
 
     // Creating and preparing camera object
-    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, float(IMAGE_WIDTH)/float(IMAGE_HEIGHT), glm::radians(45.f));
+    Camera cam(IMAGE_WIDTH, IMAGE_HEIGHT, float(IMAGE_WIDTH) / float(IMAGE_HEIGHT), glm::radians(45.f));
     cam.rotate(0.f, -10.f, 0.f);
 
     //cam.translate(glm::vec3(0.f, 2.5f, 3.5f)); // for cornell box
@@ -55,7 +53,7 @@ int main()
     std::cout << "\nSuccessfully Loaded Scene " << "\n";
 
     // Creating a ray pointer to iterate over the array of rays
-    Ray** transRays;
+    Ray **transRays;
 
     // Getting the rays transformed w.r.t world-frame
     transRays = cam.getTransformedRays();
@@ -69,12 +67,11 @@ int main()
     // Computing buckets
     glm::vec2 bucketSize(IMAGE_WIDTH / divisions, IMAGE_HEIGHT / divisions);
     glm::vec4 bucketList[divisions * divisions];
-    for (int y = 0; y < divisions; y++)
-    {
-        for (int x = 0; x < divisions; x++)
-        {
+    for (int y = 0; y < divisions; y++) {
+        for (int x = 0; x < divisions; x++) {
             // xmin xmax ymin ymax
-            bucketList[x + y * divisions] = glm::vec4(bucketSize.x * x, bucketSize.x * (x + 1), bucketSize.y * y, bucketSize.y * (y + 1));
+            bucketList[x + y * divisions] = glm::vec4(bucketSize.x * x, bucketSize.x * (x + 1), bucketSize.y * y,
+                                                      bucketSize.y * (y + 1));
         }
     }
 
@@ -88,48 +85,49 @@ int main()
 
     // Creating a thread for image display and detaching it
     std::thread image_thread(
-        [&]()
-        {
-            while (true)
-            {
-                if (!writing_file)
-                {
-                    // Display the rendered bucket
-                    image.convertTo(outImg, CV_8UC3); // Converting to uint8 before resizing
-                    cv::resize(outImg, outImg, cv::Size(int(IMAGE_WIDTH / ANTI_ALIASING), int(IMAGE_HEIGHT / ANTI_ALIASING)), 0, 0, CV_INTER_AREA);
-                    cv::imshow("Image", outImg);
-                    cv::waitKey(1);
+            [&]() {
+                while (true) {
+                    if (!writing_file) {
+                        // Display the rendered bucket
+                        image.convertTo(outImg, CV_8UC3); // Converting to uint8 before resizing
+                        cv::resize(outImg, outImg,
+                                   cv::Size(int(IMAGE_WIDTH / ANTI_ALIASING), int(IMAGE_HEIGHT / ANTI_ALIASING)), 0, 0,
+                                   CV_INTER_AREA);
+                        cv::imshow("Image", outImg);
+                        cv::waitKey(1);
+                    }
                 }
             }
-        }
     );
 
     //image_thread.detach(); // Let it run in parallel
 
     const int samples = 1000;
     // Parallel Rendering and updating image
-    for (int s=0; s<samples; s++)
-    {
-        #pragma omp parallel for num_threads(8)
+    for (int s = 0; s < samples; s++) {
+#pragma omp parallel for num_threads(8)
         for (int i = 0; i < divisions * divisions; i++) {
             // Creating a color array of bucket size in advance (Thanks to Imre Palik for finding a memory leak)
-            glm::vec3* colors = new glm::vec3[int(bucketSize.x) * int(bucketSize.y)]; // "new" keyword now gets deleted at the end
+            glm::vec3 *colors = new glm::vec3[int(bucketSize.x) *
+                                              int(bucketSize.y)]; // "new" keyword now gets deleted at the end
 
             // Filling colors array
             tracer.colorFromRegion(bucketList[i], colors);
 
             // Coloring image using the colors obtained from the rendered region
-            for (int y = 0; y < bucketSize.y; y++)
-            {
-                for (int x = 0; x < bucketSize.x; x++)
-                {
+            for (int y = 0; y < bucketSize.y; y++) {
+                for (int x = 0; x < bucketSize.x; x++) {
                     // Coloring the image pixel using the final color values
                     // Getting the color value at this x,y
-                    cv::Vec3f color = image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)); // Picking the image point at the bucket offset
+                    cv::Vec3f color = image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y -
+                                                                                         bucketList[i].z)); // Picking the image point at the bucket offset
                     // Altering the color value with gamma-2 correction
-                    color[0] = (color[0] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].z) * 255.99f) / float(s + 1);
-                    color[1] = (color[1] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].y) * 255.99f) / float(s + 1);
-                    color[2] = (color[2] * float(s) + sqrt(colors[(int)(x + y * bucketSize.x)].x) * 255.99f) / float(s + 1);
+                    color[0] = (color[0] * float(s) + sqrt(colors[(int) (x + y * bucketSize.x)].z) * 255.99f) /
+                               float(s + 1);
+                    color[1] = (color[1] * float(s) + sqrt(colors[(int) (x + y * bucketSize.x)].y) * 255.99f) /
+                               float(s + 1);
+                    color[2] = (color[2] * float(s) + sqrt(colors[(int) (x + y * bucketSize.x)].x) * 255.99f) /
+                               float(s + 1);
 
                     image.at<cv::Vec3f>(cv::Point(x + bucketList[i].x, IMAGE_HEIGHT - 1 - y - bucketList[i].z)) = color;
                 }
@@ -139,8 +137,7 @@ int main()
             delete[] colors;
         }
 
-        if (s % 1 == 0)
-        {
+        if (s % 1 == 0) {
             writing_file = true;
             cv::imwrite("./Renders/" + startTime + std::to_string(s) + ".jpg", outImg);
             writing_file = false;
@@ -149,7 +146,7 @@ int main()
         std::cout << "Render-pass  :" << s << "\n";
     }
 
-    std::cout << "\nTime taken: " << (double)(clock() - tStart) / CLOCKS_PER_SEC;
+    std::cout << "\nTime taken: " << (double) (clock() - tStart) / CLOCKS_PER_SEC;
 
     std::string endTime = NowToString();
     replace(endTime.begin(), endTime.end(), ':', '_');

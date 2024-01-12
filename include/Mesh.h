@@ -13,44 +13,39 @@
 #include "Face.h"
 #include "OBJLoader.h"
 
-class Mesh
-{
+class Mesh {
 public:
     // List of faces in this scene
-    std::vector<Face> faces; // Required for octree building and intersection queries
-    
+    std::vector <Face> faces; // Required for octree building and intersection queries
+
     // For Importance sampling
-    std::vector<Face*> emissives;
+    std::vector<Face *> emissives;
     std::vector<float> lightImportancePDF;
     std::vector<float> lightImportanceCDF;
 
     bool recalculated_normals = false; // Required for shading purposes
 
     // List of materials required by this scene
-    std::vector<Material> materials;
+    std::vector <Material> materials;
     Material defaultMaterial;
 
-	Octree* octree;
+    Octree *octree;
 
     // Constructor
-    Mesh(std::string infile)
-    {
+    Mesh(std::string infile) {
         loadOBJ(infile, this->faces, this->materials);
         std::cout << "Loaded scene successfully\n";
 
         // Apply a default material to any face that has no material
-        for (int i=0; i<faces.size(); i++)
-        {
-            if (faces[i].mat == NULL)
-            {
+        for (int i = 0; i < faces.size(); i++) {
+            if (faces[i].mat == NULL) {
                 faces[i].mat = &defaultMaterial;
             }
         }
 
         // Finding out the emissive faces for importance sampling
         float sum = 0;
-        for (int i=0; i<faces.size(); i++)
-        {
+        for (int i = 0; i < faces.size(); i++) {
             if (faces[i].mat->emission > 0.f) {
                 emissives.push_back(&faces[i]);
                 sum += faces[i].mat->emission;
@@ -60,15 +55,13 @@ public:
         std::cout << "Emissives Count:      " << emissives.size() << "\n";
 
         // Contructing Propotional PDF
-        for (int i=0; i<emissives.size(); i++)
-        {
+        for (int i = 0; i < emissives.size(); i++) {
             lightImportancePDF.push_back(emissives[i]->mat->emission / sum);
         }
 
         // Constructing CDF
         float runningSum = 0;
-        for (int i=0; i<emissives.size(); i++)
-        {
+        for (int i = 0; i < emissives.size(); i++) {
             runningSum += lightImportancePDF[i];
             lightImportanceCDF.push_back(runningSum);
         }
@@ -91,8 +84,7 @@ public:
     //    recalculated_normals = true;
     //}
 
-    glm::vec3 getFaceNormal(Face face)
-    {
+    glm::vec3 getFaceNormal(Face face) {
 
         glm::vec3 A = glm::normalize(face.vertices[1] - face.vertices[0]);
         glm::vec3 B = glm::normalize(face.vertices[2] - face.vertices[1]);
@@ -100,41 +92,32 @@ public:
         return glm::normalize(glm::cross(A, B));
     }
 
-	void computeOctree()
-	{
+    void computeOctree() {
         // Finding the min/max bounds of objects
         glm::vec3 minCoords(1000000, 1000000, 1000000);
         glm::vec3 maxCoords(-1000000, -1000000, -1000000);
-        for (int f = 0; f < faces.size(); f++)
-        {
+        for (int f = 0; f < faces.size(); f++) {
             // Looping over vertices of this face
-            for (int i=0; i<3; i++)
-            {
+            for (int i = 0; i < 3; i++) {
                 // Assigning min values
-                if (faces[f].vertices[i].x < minCoords.x)
-                {
+                if (faces[f].vertices[i].x < minCoords.x) {
                     minCoords.x = faces[f].vertices[i].x;
                 }
-                if (faces[f].vertices[i].y < minCoords.y)
-                {
+                if (faces[f].vertices[i].y < minCoords.y) {
                     minCoords.y = faces[f].vertices[i].y;
                 }
-                if (faces[f].vertices[i].z < minCoords.z)
-                {
+                if (faces[f].vertices[i].z < minCoords.z) {
                     minCoords.z = faces[f].vertices[i].z;
                 }
 
                 // Assigning max values
-                if (faces[f].vertices[i].x > maxCoords.x)
-                {
+                if (faces[f].vertices[i].x > maxCoords.x) {
                     maxCoords.x = faces[f].vertices[i].x;
                 }
-                if (faces[f].vertices[i].y > maxCoords.y)
-                {
+                if (faces[f].vertices[i].y > maxCoords.y) {
                     maxCoords.y = faces[f].vertices[i].y;
                 }
-                if (faces[f].vertices[i].z > maxCoords.z)
-                {
+                if (faces[f].vertices[i].z > maxCoords.z) {
                     maxCoords.z = faces[f].vertices[i].z;
                 }
             }
@@ -144,14 +127,12 @@ public:
         this->octree = new Octree(boundary);
 
         // Adding faces to octree
-        for (int i=0; i<faces.size(); i++)
-        {
+        for (int i = 0; i < faces.size(); i++) {
             this->octree->insert(&this->faces[i]);
         }
-	}
+    }
 
-    HitInfo closestIntersection(Ray ray)
-    {
+    HitInfo closestIntersection(Ray ray) {
         HitInfo hitInfo;
         hitInfo.hit = false;
         hitInfo.texcoord = glm::vec2(0);
@@ -160,34 +141,33 @@ public:
         octree->query(ray, &hitInfo);
 
         // Filling necessary information only if hit something
-        if (hitInfo.hit)
-        {
+        if (hitInfo.hit) {
             // Calculating remaining params of hitInfo
             hitInfo.hitPoint = ray.origin + ray.direction * hitInfo.hitDistance;
 
             // Getting the average normal
             hitInfo.normal = glm::normalize(hitInfo.face->normals[0] +
-                hitInfo.face->normals[1] +
-                hitInfo.face->normals[2]);
+                                            hitInfo.face->normals[1] +
+                                            hitInfo.face->normals[2]);
 
             // Calculating bary coordinates
             float b0, b1, b2;
-            GetBaryCoords(hitInfo.face->vertices[0], 
-                hitInfo.face->vertices[1], hitInfo.face->vertices[2], 
-                hitInfo.hitPoint, &b1, &b2);
+            GetBaryCoords(hitInfo.face->vertices[0],
+                          hitInfo.face->vertices[1], hitInfo.face->vertices[2],
+                          hitInfo.hitPoint, &b1, &b2);
 
             b0 = 1.f - b1 - b2;
 
             // Texcoord at hitPoint is
             hitInfo.texcoord = b0 * hitInfo.face->uvs[0] +
-                b1 * hitInfo.face->uvs[1] + b2 * hitInfo.face->uvs[2];
+                               b1 * hitInfo.face->uvs[1] + b2 * hitInfo.face->uvs[2];
         }
 
         return hitInfo;
     }
 
-    bool GetBaryCoords(glm::vec3& p0, glm::vec3& p1, glm::vec3& p2,
-        glm::vec3& hitPoint, float* b1, float* b2) {
+    bool GetBaryCoords(glm::vec3 &p0, glm::vec3 &p1, glm::vec3 &p2,
+                       glm::vec3 &hitPoint, float *b1, float *b2) {
         glm::vec3 u = p1 - p0;
         glm::vec3 v = p2 - p0;
         glm::vec3 w = hitPoint - p0;

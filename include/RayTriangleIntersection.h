@@ -6,9 +6,8 @@
 #include "Face.h"
 
 float rayTriangleIntersect(
-    Ray ray,
-    Face* face)
-{
+        Ray ray,
+        Face *face) {
     glm::vec3 v0v1 = face->vertices[1] - face->vertices[0];
     glm::vec3 v0v2 = face->vertices[2] - face->vertices[0];
     glm::vec3 pvec = glm::cross(glm::vec3(ray.direction), v0v2);

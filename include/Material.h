@@ -5,8 +5,7 @@
 
 # define PI           3.1415926535f
 
-class Material
-{
+class Material {
 public:
     // Disney brdf params
     glm::vec3 baseColor; // .82 .67 .16
@@ -30,8 +29,7 @@ public:
     cv::Size baseColor_tex_size;
 
     // Constructor
-	Material()
-	{
+    Material() {
         // For Disney brdf
         baseColor = glm::vec3(0.8f, 0.8f, 0.8f); // (0.82f, 0.67f, 0.16f)
         metallic = 0.f; // 0 1 0
@@ -48,7 +46,7 @@ public:
 
         // For Oren-nayar
         sigma = 30; //0 90 30
-	}
+    }
 
     //// Lambert BRDF
     //glm::vec3 BRDF(glm::vec3 L, glm::vec3 V, glm::vec3 N, glm::vec3 X, glm::vec3 Y)
@@ -57,17 +55,14 @@ public:
     //}
 
     // Oren-nayar BRDF
-    glm::vec3 BRDF(glm::vec3 L, glm::vec3 V, glm::vec3 N, glm::vec2 texcoord)
-    {
+    glm::vec3 BRDF(glm::vec3 L, glm::vec3 V, glm::vec3 N, glm::vec2 texcoord) {
         // Get color from image if exists
-        if (!baseColor_tex.empty())
-        {
+        if (!baseColor_tex.empty()) {
             int width = baseColor_tex.size().width * texcoord.x;
             int height = baseColor_tex.size().height - baseColor_tex.size().height * texcoord.y;
             //int height = baseColor_tex.size().height * texcoord.y;
 
-            if (width < 0)
-            {
+            if (width < 0) {
                 int absWidth = glm::abs(width);
                 absWidth = absWidth % baseColor_tex.size().width;
                 width = baseColor_tex.size().width - absWidth;
@@ -76,9 +71,8 @@ public:
             if (width >= baseColor_tex.size().width)
                 width = width % baseColor_tex.size().width;
 
-            if (height < 0)
-            {
-                int absHeight= glm::abs(height);
+            if (height < 0) {
+                int absHeight = glm::abs(height);
                 absHeight = absHeight % baseColor_tex.size().height;
                 height = baseColor_tex.size().width - absHeight;
             }
@@ -86,20 +80,19 @@ public:
             if (height >= baseColor_tex.size().height)
                 height = height % baseColor_tex.size().height;
 
-            if (width < 0 || height < 0)
-            {
+            if (width < 0 || height < 0) {
                 std::cout << texcoord.x << " " << texcoord.y << "\n";
             }
 
             cv::Vec3f texColor = baseColor_tex.at<cv::Vec3b>(
-                cv::Point(
-                    width,
-                    height
-                )
+                    cv::Point(
+                            width,
+                            height
+                    )
             );
-            baseColor.x = texColor[2]/255.f;
-            baseColor.y = texColor[1]/255.f;
-            baseColor.z = texColor[0]/255.f;
+            baseColor.x = texColor[2] / 255.f;
+            baseColor.y = texColor[1] / 255.f;
+            baseColor.z = texColor[0] / 255.f;
         }
 
         float VdotN = dot(V, N);
@@ -118,8 +111,10 @@ public:
         if (cos_phi_diff >= 0) C2 *= sin(alpha);
         else C2 *= (sin(alpha) - pow(2 * beta / PI, 3));
         float C3 = 0.125 * sigma2 / (sigma2 + 0.09) * pow((4 * alpha * beta) / (PI * PI), 2);
-        glm::vec3 L1 = this->baseColor / float(PI) * (C1 + cos_phi_diff * C2 * tan(beta) + (1 - abs(cos_phi_diff)) * C3 * tan((alpha + beta) / 2));
-        glm::vec3 L2 = 0.17f * this->baseColor * this->baseColor / float(PI) * sigma2 / (sigma2 + 0.13f) * (1.f - cos_phi_diff * (4.f * beta * beta) / float(PI * PI));
+        glm::vec3 L1 = this->baseColor / float(PI) *
+                       (C1 + cos_phi_diff * C2 * tan(beta) + (1 - abs(cos_phi_diff)) * C3 * tan((alpha + beta) / 2));
+        glm::vec3 L2 = 0.17f * this->baseColor * this->baseColor / float(PI) * sigma2 / (sigma2 + 0.13f) *
+                       (1.f - cos_phi_diff * (4.f * beta * beta) / float(PI * PI));
         return glm::vec3(L1 + L2);
     }
 
@@ -224,7 +219,7 @@ public:
     //    return (diffuse + Gs * Fs * Ds + 0.25f * clearcoat * Gr * Fr * Dr) * NdL;
     //}
 
-	//// Disney brdf code
+    //// Disney brdf code
     //float sqr(float x) { return x * x; }
 
     //float mix(float v1, float v2, float a)

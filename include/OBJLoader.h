@@ -7,25 +7,25 @@
 #include "opencv2/opencv.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
+
 #include "tiny_obj_loader.h"
 #include "Face.h"
 #include "Mesh.h"
 #include "Material.h"
 
-static std::string GetBaseDir(const std::string& filepath) {
+static std::string GetBaseDir(const std::string &filepath) {
     if (filepath.find_last_of("/\\") != std::string::npos)
         return filepath.substr(0, filepath.find_last_of("/\\"));
     return "";
 }
 
 void loadOBJ(std::string inputfile,
-    std::vector<Face>& faces,
-    std::vector<Material>& materials
-)
-{
+             std::vector <Face> &faces,
+             std::vector <Material> &materials
+) {
     tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> t_materials;
+    std::vector <tinyobj::shape_t> shapes;
+    std::vector <tinyobj::material_t> t_materials;
 
     std::string warn;
     std::string err;
@@ -56,8 +56,7 @@ void loadOBJ(std::string inputfile,
     std::cout << "Normals:      " << size_normals << "\n";
 
     // Creating materials
-    for (size_t m=0; m<t_materials.size(); m++)
-    {
+    for (size_t m = 0; m < t_materials.size(); m++) {
         // Blender exports non-pbr materials
         // So we need to work around plugging in the values into our pbr material
 
@@ -69,34 +68,31 @@ void loadOBJ(std::string inputfile,
         temp_mat.baseColor.y = t_materials[m].diffuse[1];
         temp_mat.baseColor.z = t_materials[m].diffuse[2];
 
-        temp_mat.subsurface = std::max({ float(t_materials[m].transmittance[0]),
-            float(t_materials[m].transmittance[1]),
-            float(t_materials[m].transmittance[2]) });
+        temp_mat.subsurface = std::max({float(t_materials[m].transmittance[0]),
+                                        float(t_materials[m].transmittance[1]),
+                                        float(t_materials[m].transmittance[2])});
 
         // Picking the max of three as roughness amount
-        temp_mat.roughness = std::max({ float(t_materials[m].diffuse[0]),
-            float(t_materials[m].diffuse[1]),
-            float(t_materials[m].diffuse[2]) });
+        temp_mat.roughness = std::max({float(t_materials[m].diffuse[0]),
+                                       float(t_materials[m].diffuse[1]),
+                                       float(t_materials[m].diffuse[2])});
 
         // Picking the max of three as specular amount
-        temp_mat.specular = std::max({ float(t_materials[m].specular[0]),
-            float(t_materials[m].specular[1]),
-            float(t_materials[m].specular[2]) });
+        temp_mat.specular = std::max({float(t_materials[m].specular[0]),
+                                      float(t_materials[m].specular[1]),
+                                      float(t_materials[m].specular[2])});
 
         temp_mat.clearcoat = t_materials[m].shininess;
 
-        temp_mat.emission = std::max({ float(t_materials[m].emission[0]),
-            float(t_materials[m].emission[1]),
-            float(t_materials[m].emission[2]) });
+        temp_mat.emission = std::max({float(t_materials[m].emission[0]),
+                                      float(t_materials[m].emission[1]),
+                                      float(t_materials[m].emission[2])});
 
         std::cout << (t_materials[m].diffuse_texname) << "\n";
 
-        if (t_materials[m].diffuse_texname != "")
-        {
+        if (t_materials[m].diffuse_texname != "") {
             temp_mat.baseColor_tex = cv::imread(t_materials[m].diffuse_texname);
-        }
-        else
-        {
+        } else {
             temp_mat.baseColor_tex = NULL;
         }
 
@@ -128,32 +124,30 @@ void loadOBJ(std::string inputfile,
                 tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 
                 // Extracting position of vertex
-                glm::vec3 position{ 
-                    attrib.vertices[3 * idx.vertex_index + 0], // x
-                    attrib.vertices[3 * idx.vertex_index + 1], // y
-                    attrib.vertices[3 * idx.vertex_index + 2]  // z
+                glm::vec3 position{
+                        attrib.vertices[3 * idx.vertex_index + 0], // x
+                        attrib.vertices[3 * idx.vertex_index + 1], // y
+                        attrib.vertices[3 * idx.vertex_index + 2]  // z
                 };
                 temp_face.vertices[v] = position;
-                
+
                 // Add uvs or normals onyl when they are available
-                if (size_texcoords > 0)
-                {
+                if (size_texcoords > 0) {
                     //Problem with uvs at the moment
                     // Extracting uv at vertex
                     glm::vec2 uv{
-                        attrib.texcoords[2 * idx.texcoord_index + 0],
-                        attrib.texcoords[2 * idx.texcoord_index + 1]
+                            attrib.texcoords[2 * idx.texcoord_index + 0],
+                            attrib.texcoords[2 * idx.texcoord_index + 1]
                     };
                     temp_face.uvs[v] = uv;
                 }
 
-                if (size_normals > 0)
-                {
+                if (size_normals > 0) {
                     // Extracting normal at vertex
                     glm::vec3 normal{
-                        attrib.normals[3 * idx.normal_index + 0],
-                        attrib.normals[3 * idx.normal_index + 1],
-                        attrib.normals[3 * idx.normal_index + 2]
+                            attrib.normals[3 * idx.normal_index + 0],
+                            attrib.normals[3 * idx.normal_index + 1],
+                            attrib.normals[3 * idx.normal_index + 2]
                     };
                     temp_face.normals[v] = normal;
                 }
