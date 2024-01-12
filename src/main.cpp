@@ -1,9 +1,6 @@
 #include <iostream>
-#include <algorithm>    // std::shuffle
-#include <vector>       // std::vector
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
-#include <thread>
 
 #include "Camera.h"
 #include "Ray.h"
