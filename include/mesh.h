@@ -13,6 +13,21 @@
 #include "Face.h"
 #include "OBJLoader.h"
 
+struct Vertex {
+    glm::vec3 position;
+    glm::vec2 uv;
+    glm::vec3 normal;
+};
+
+struct Face {
+    int index;
+    glm::vec3 vertices[3];
+    glm::vec2 uvs[3];
+    glm::vec3 normals[3];
+
+    Material *mat;
+};
+
 class Mesh {
 public:
     // List of faces in this scene

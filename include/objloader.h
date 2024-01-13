@@ -19,7 +19,7 @@ static std::string GetBaseDir(const std::string &filepath) {
     return "";
 }
 
-void loadOBJ(std::string inputfile,
+void loadMeshAndMaterials(std::string inputfile,
              std::vector <Face> &faces,
              std::vector <Material> &materials
 ) {
